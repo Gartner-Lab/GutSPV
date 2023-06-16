@@ -9,7 +9,5 @@ tissue mechanics (2017).
 Fork of the implementation by Jake Cornwall-Scoones. Original project source:
 https://github.com/jakesorel/active_vertex/
 
-For usage, see gut_SPV.py.
-
 Proper documentation coming soon!
 
