@@ -38,7 +38,7 @@ def _voronoi_finite_polygons_2d(vor, radius=None):
 
     center = vor.points.mean(axis=0)
     if radius is None:
-        radius = vor.points.ptp().max()
+        radius = np.max(vor.points) - np.min(vor.points) # vor.points.ptp().max()
 
     # Construct a map containing all ridges for a given point
     all_ridges = {}
@@ -134,7 +134,7 @@ def plot_vor(x, ax, L, c_types, colors, plot_scatter, line_width, tri=False):
         
         patches = []
         for i, region in enumerate(regions):
-            patches.append( Polygon(vertices[region], True, \
+            patches.append( Polygon(vertices[region], closed=True, \
                                     facecolor=colors[c_types_print[i]], \
                                     edgecolor=(1,1,1,1), linewidth=line_width) )
 

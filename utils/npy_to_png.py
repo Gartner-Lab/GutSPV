@@ -10,7 +10,7 @@ import sys, glob
 import pathlib
 # Assume SPV_plot is one up relative to this script:
 sys.path.append( str(pathlib.Path(__file__).parent.resolve()) + "/../" )
-from SPV_plot import *
+from spv_plot import *
 
 # Width of the polygon edge line.
 line_width = 0.5

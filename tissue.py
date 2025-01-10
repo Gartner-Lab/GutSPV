@@ -40,8 +40,8 @@ class Tissue:
         :param x0: initial cell coordinates
         :param P: model parameters (as a dictionary)
         """
-        if (x0 == []):
-            x0 = np.array([])
+        # if (x0 == []):
+        #     x0 = np.array([])
         if (P == []):
             P = defaultdict(lambda: [])
             # Assign default values other than '[]' if desired:

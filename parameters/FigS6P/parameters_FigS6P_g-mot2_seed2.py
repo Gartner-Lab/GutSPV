@@ -17,7 +17,7 @@ mes_thickness = [1, 0, 0]
 mes_density = [0.0, 1.0, 1.0]
 
 init_noise = 0.005      # initial arrangement noise
-rng_seed = 1            # random number generator seed
+rng_seed = 2            # random number generator seed
 
 dt = 0.025              # simulation time step
 tMax = 2001             # simulation time end point

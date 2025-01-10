@@ -1,10 +1,12 @@
-"""SPV simulation of intestinal cell clustering.
+"""
+SPV simulation of intestinal cell clustering.
 
 A 2D cross-sectional view of the intestinal tissue with three cell/material types: 
 Pdgrfa- (dark green), Pdgfra+ (light green) and epithelium (red).
 
 Run by calling this script and providing a parameters file as an arguments.
-Writes output as npy data files.
+Writes output as npy data files into a given output folder and subfolders 
+therein.
 
 Notes: 
 - If multithreading is not working in Ubuntu, try installing 
@@ -22,7 +24,7 @@ import energy_heatmap as hm
 
 
 
-def random_cell_states(rows, cols, ngfp):
+def random_cell_states(rows, cols, ngfp, rng):
     """
     Generates a 2D array of randomly distributed cell states, 0 or 1, with given 
     total number of states 1. Positions of 1s are drawn from low discrepancy 
@@ -32,10 +34,12 @@ def random_cell_states(rows, cols, ngfp):
         rows: number of array rows
         cols: number of array columns
         ngfp: number of cells with state 1
+        rng: random generator (np.random.detault_rng)
 
     Returns 
         Array of cell states, size rows x cols
     """
+
     # Array of cell identities with 0 = non-gfp, 1 = gfp.
     cells = np.zeros([rows,cols])
     if (ngfp == 0):
@@ -44,8 +48,10 @@ def random_cell_states(rows, cols, ngfp):
         return np.ones([rows,cols])
     
     # Generate low discrepancy distribution of gpf cells from the Halton sequence.
-    sampler = qmc.Halton(d=2, scramble=False)
+    # NOTE: qmc.Halton does not recognize the global np.random.seed().
+    sampler = qmc.Halton(d=2, scramble=True, seed=rng)
     sample = sampler.random(n=ngfp)
+
     # Assign coordinates to cell nodes/bins, then set those cells to 1.
     # Note: Some coordinates may overlap; taking care of those below.
     i2d = np.floor(sample*[rows,cols])
@@ -55,7 +61,8 @@ def random_cell_states(rows, cols, ngfp):
     # Inject the cells missing due to bin overlaps using the ordinary random numbers.
     n = ngfp - int(sum(sum(cells)))
     iz = np.where(cells == 0)
-    inject = np.random.randint(0, np.shape(iz)[1], size=n)
+    inject = rng.integers(0, np.shape(iz)[1], size=n)
+    # inject = np.random.randint(0, np.shape(iz)[1], size=n)   # same as above, the old way
     for i in inject:
         cells[iz[0][i], iz[1][i]] = 1
     
@@ -68,7 +75,7 @@ def random_cell_states(rows, cols, ngfp):
 #
 
 if (len(sys.argv) < 2):
-    print("Usage: python " + sys.argv[0] + " [parameters].py")
+    print("Usage: python " + sys.argv[0] + " [parameters] [output folder (optional)]")
     exit(0)
 
 sys.path.insert(0, os.path.dirname(sys.argv[1]))
@@ -88,6 +95,10 @@ if (len(P['domain_size']) != 2):
 # Initialize tissue; assign cell types.
 #
 
+# Initialize random generator. Used for generating random sequences throughout 
+# this file, while tissue module will rely on its own generators.
+rng = np.random.default_rng(P["rng_seed"])
+
 m = int(P["domain_size"][1])        # initial number of cell rows
 n = int(P["domain_size"][0])        # initial number of columns
 m0 = int(P["lumen_thickness"])      # thickness of epithlium
@@ -96,7 +107,8 @@ m2 = int(P["mes_thickness"][1])     # Pdgfra- / shallow mesenchyme
 m3 = int(P["mes_thickness"][2])     # Pdgfra- / deep mesenchyme
 m4 = m - m0 - m1 - m2 - m3          # Pure Pdgfra- / bottom gap 
 
-x0 = spv_mesh.init_square_lattice(rows=m, cols=n, noise=P["init_noise"], rng_seed=P["rng_seed"])
+x0 = spv_mesh.init_square_lattice(rows=m, cols=n, rng=rng, noise=P["init_noise"])
+print(np.shape(x0))
 vor = Tissue(x0, P)
 
 # Construct GFP layers in top to bottom order, with top layer(s) having the 
@@ -107,7 +119,8 @@ for i in range(0,m1):
     ngfp = np.max([0.0, ngfp])
     p = np.min([ngfp, 1.0])
     arr = np.array( [1]*int(p*n) + [0]*(n-int(p*n)) )
-    np.random.shuffle(arr)
+    rng.shuffle(arr)
+    # np.random.shuffle(arr)    # old style shuffle
     gfp = np.concatenate([gfp, arr])
     ngfp = ngfp - 1.0
 
@@ -126,13 +139,13 @@ gfp = np.flip(gfp)
 # First layer (bottom)
 mes1 = round(m3 * n * (1.0-P["mes_density"][2]))  # number of Pdgfra+ cells
 mes0 = m3*n - mes1                              # number of Pdgfra- cells
-mm1 = random_cell_states(m3, n, mes1)
+mm1 = random_cell_states(m3, n, mes1, rng=rng)
 print("Bottom mesenchymal layer, number of Pdgfra low and high cells: " \
       + str(mes0) + ", " + str(mes1))
 
 # Second layer (the one touching epithelium)
 mes1 = round(m2 * n * (1.0-P["mes_density"][1]))
-mm2 = random_cell_states(m2, n, mes1)
+mm2 = random_cell_states(m2, n, mes1, rng=rng)
 print("Top mesenchymal layer, number of Pdgfra low and high cells: " \
       + str(mes0) + ", " + str(mes1))
 
@@ -159,9 +172,17 @@ vor.set_interaction( W=np.asarray(par.W), c_types=c_types, pE=[], randomize=Fals
 
 # Output folder for writing results.
 s = os.path.basename(sys.argv[1])
-prefix = s.split("_")[1] if len(s.split("_"))>2 else s
-outputDir = "%s_%d_size-%d_activ-%s" %(prefix, time.time(), par.domain_size[0], \
-            str(vor.v0).replace(" ", ""))
+tokens = s.split(".")[0].split("_")
+if "parameters" in tokens:
+    tokens.remove("parameters")
+
+prefix = '_'.join(tokens)
+outputDir = ""
+if len(sys.argv) == 3:
+    outputDir = sys.argv[2] + "/"
+outputDir = outputDir + "%s_%d" %(prefix, time.time())
+# outputDir = "%s_%d_size-%d_activ-%s" %(prefix, time.time(), par.domain_size[0], \
+#             str(vor.v0).replace(" ", ""))
 if not os.path.exists(outputDir):
     os.makedirs(outputDir)
 
@@ -174,7 +195,7 @@ vor.set_t_span(par.dt, par.tMax)
 
 # Print_every sets the number of iterations for which to print the percentage completed.
 t_start = time.time()
-x_save, tri_save = vor.simulate( print_every=100, output_dir=outputDir, rng_seed=par.rng_seed )
+x_save, tri_save = vor.simulate( print_every=100, output_dir=outputDir, rng_seed=P["rng_seed"] )
 print('Simulation took %f seconds' %(time.time() - t_start))
 
 #
