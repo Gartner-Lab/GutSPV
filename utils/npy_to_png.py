@@ -37,5 +37,5 @@ for file in input:
     L, X, c_types = np.load(file, allow_pickle=True)
 
     output = file.split(".")[0]     # output file name without .png extension
-    plot_step( X, output, L, c_types, colors, plot_scatter=False, tri_save=False, \
-               dir_name=".", line_width=line_width )
+    plot_step( X, output, L, c_types, colors, plot_scatter=False, \
+               dir_name=".", line_width=line_width, tri=True )

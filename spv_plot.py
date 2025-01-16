@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+from scipy.spatial import Delaunay
 
 
 
@@ -143,12 +144,20 @@ def plot_vor(x, ax, L, c_types, colors, plot_scatter, line_width, tri=False):
         ax.add_collection(p)
     
     if tri is not False:
+        # NOTE: Storing triangles to the npy files roughly doubles the file size,
+        # hence (re-)running the triangulation here is be a valid approach
+        # considering disk space usage in large simulations.
+        T = Delaunay(x)
+        plt.triplot(x[:,0], x[:,1], T.simplices, linewidth=line_width, color='red')
+        '''
+        # Relies on pre-computed triangles from Tissue:
         for TRI in tri:
             for j in range(3):
                 a, b = TRI[j], TRI[np.mod(j + 1, 3)]
                 if (a >= 0) and (b >= 0):
                     X = np.stack((x[a], x[b])).T
-                    ax.plot(X[0], X[1], color="black")
+                    ax.plot(X[0], X[1], color="black", linewidth=line_width)
+        '''
 
 
 
@@ -192,7 +201,8 @@ def plot_vor_boundary(x, ax, L, c_types, colors, plot_scatter, line_width, tri=F
         p = PatchCollection(patches, match_original=True)
         # p.set_array(c_types_print)
         ax.add_collection(p)
-    
+    '''
+    # Relies on pre-computed triangles from Tissue:
     if tri is not False:
         for TRI in tri:
             for j in range(3):
@@ -200,6 +210,7 @@ def plot_vor_boundary(x, ax, L, c_types, colors, plot_scatter, line_width, tri=F
                 if (a >= 0) and (b >= 0):
                     X = np.stack((x[a], x[b])).T
                     ax.plot(X[0], X[1], color="black")
+    '''
 
 
 
@@ -224,7 +235,7 @@ def check_forces(data, iter, F, dir_name="plots"):
 
 
 
-def plot_step(data, iter, domain_size, c_types, colors, plot_scatter, tri_save, \
+def plot_step(data, iter, domain_size, c_types, colors, plot_scatter, \
               dir_name="plots", an_type="periodic", line_width=1.0, tri=False):
     """
     Writes the given simulation stage into a .png file.
@@ -234,6 +245,7 @@ def plot_step(data, iter, domain_size, c_types, colors, plot_scatter, tri_save, 
     :param iter: Current iteration.
     :param dir_name: Directory name to save simulation within
     :param an_type: Animation-type -- either "periodic" or "boundary"
+    :param tri: Boolean of whether to triangulate cell positions (data).
     """ 
 
     if an_type == "periodic":
@@ -249,10 +261,7 @@ def plot_step(data, iter, domain_size, c_types, colors, plot_scatter, tri_save, 
     ax1.cla()
     ax1.axis('off')
 
-    if tri is True:
-        plot_fn(data, ax1, domain_size, c_types, colors, plot_scatter, line_width, tri=tri_save)
-    else:
-        plot_fn(data, ax1, domain_size, c_types, colors, plot_scatter, line_width, tri=False)
+    plot_fn(data, ax1, domain_size, c_types, colors, plot_scatter, line_width, tri=tri)
 
     #    if self.plot_forces is True:
     #        x = self.x_save[skip*i]
