@@ -1,8 +1,10 @@
 BIN=python
-$BIN villus_clustering.py parameters/Fig5I/parameters_Fig5I_control_seed1.py output_Fig5I
-$BIN villus_clustering.py parameters/Fig5I/parameters_Fig5I_control_seed2.py output_Fig5I
-$BIN villus_clustering.py parameters/Fig5I/parameters_Fig5I_control_seed3.py output_Fig5I
-$BIN villus_clustering.py parameters/Fig5I/parameters_Fig5I_low-cohesion_seed1.py output_Fig5I
-$BIN villus_clustering.py parameters/Fig5I/parameters_Fig5I_low-cohesion_seed2.py output_Fig5I
-$BIN villus_clustering.py parameters/Fig5I/parameters_Fig5I_low-cohesion_seed3.py output_Fig5I
+#$BIN DPAC_clustering.py parameters_DPAC1.py
+#$BIN DPAC_clustering.py DPAC1_parameters/1.py output_Fig5I
+
+$BIN DPAC_clustering.py DPAC1_parameters/7.py output_Fig5I
+$BIN DPAC_clustering.py DPAC1_parameters/8.py output_Fig5I
+$BIN DPAC_clustering.py DPAC1_parameters/9.py output_Fig5I
+$BIN DPAC_clustering.py DPAC1_parameters/10.py output_Fig5I
+
 
